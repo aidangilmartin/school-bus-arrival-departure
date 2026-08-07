@@ -4,17 +4,22 @@ A live board for managing school bus arrival and departure across 4 lanes at dis
 
 ## Run it
 
+**Easiest — no server:** double-click `public/index.html`. The board runs
+entirely in your browser and saves automatically on this device
+(the header shows "This device").
+
+**Multi-device live sync:** run
+
 ```
 npm install
 npm start
 ```
 
-Then open http://localhost:3000.
-
-Every device that opens the page sees the same board and updates live —
-open it in two windows side by side to see the sync. Other devices on the
-same Wi-Fi can reach it at `http://<this-computer's-IP>:3000` (allow Node
-through the Windows firewall when prompted).
+and open http://localhost:3000. Every device that opens the page sees the
+same board and updates live — open it in two windows side by side to see
+the sync. Other devices on the same Wi-Fi can reach it at
+`http://<this-computer's-IP>:3000` (allow Node through the Windows
+firewall when prompted). The header shows "Live" in this mode.
 
 ## How to use
 
@@ -30,5 +35,7 @@ through the Windows firewall when prompted).
 
 ## Where data lives
 
-Board state is saved to `data/state.json` automatically and survives
-restarting the server.
+- No-server mode: saved in the browser's localStorage on that device.
+- Server mode: saved to `data/state.json` and shared by all devices.
+
+The two modes don't share data with each other.

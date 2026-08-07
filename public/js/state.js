@@ -145,7 +145,7 @@ function normalize(raw) {
   return state;
 }
 
-module.exports = {
+const BusState = {
   LANE_COUNT,
   todayStr,
   defaultState,
@@ -160,3 +160,10 @@ module.exports = {
     "day:reset": dayReset,
   },
 };
+
+// Shared between the Node server (require) and the browser (script tag).
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = BusState;
+} else {
+  window.BusState = BusState;
+}

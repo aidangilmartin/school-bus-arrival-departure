@@ -2,7 +2,7 @@ const http = require("http");
 const path = require("path");
 const express = require("express");
 const { Server } = require("socket.io");
-const stateLib = require("./lib/state");
+const stateLib = require("./public/js/state");
 const persist = require("./lib/persist");
 
 const PORT = process.env.PORT || 3000;

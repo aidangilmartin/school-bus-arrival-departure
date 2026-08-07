@@ -1,11 +1,32 @@
-/* global io, Sortable */
+/* global io, Sortable, BusState */
 (function () {
   "use strict";
 
-  const socket = io();
+  // Two modes: served by the Node server (socket.io script loads → live
+  // multi-device sync) or opened straight from index.html (no server →
+  // state lives in this browser's localStorage).
+  const hasServer = typeof io !== "undefined";
+  const LOCAL_KEY = "busBoardState";
+  const socket = hasServer ? io() : null;
 
   let state = null;
   let lastVersion = -1;
+
+  function send(event, payload) {
+    if (hasServer) {
+      send(event, payload);
+      return;
+    }
+    const mutate = BusState.actions[event];
+    if (mutate && mutate(state, payload || {})) {
+      try {
+        localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+      } catch (err) {
+        console.error("Failed to save board:", err);
+      }
+      render();
+    }
+  }
 
   // Mid-drag guard: re-rendering while a drag is in progress would destroy
   // the dragged element, so broadcasts arriving mid-drag are buffered.
@@ -75,13 +96,13 @@
       const btn = document.createElement("button");
       btn.className = "bus-action depart";
       btn.textContent = "Departed ✓";
-      btn.addEventListener("click", () => socket.emit("bus:depart", { busId: bus.id }));
+      btn.addEventListener("click", () => send("bus:depart", { busId: bus.id }));
       el.appendChild(btn);
     } else if (zone === "departed") {
       const btn = document.createElement("button");
       btn.className = "bus-action undo";
       btn.textContent = "↩ Undo";
-      btn.addEventListener("click", () => socket.emit("bus:undepart", { busId: bus.id }));
+      btn.addEventListener("click", () => send("bus:undepart", { busId: bus.id }));
       el.appendChild(btn);
     }
     return el;
@@ -134,21 +155,35 @@
     }
   }
 
-  // ---------- Socket ----------
+  // ---------- Socket / local init ----------
 
-  socket.on("state", applyState);
+  if (hasServer) {
+    socket.on("state", applyState);
 
-  socket.on("connect", () => {
+    socket.on("connect", () => {
+      $("conn").classList.add("connected");
+      $("conn-label").textContent = "Live";
+      $("disconnected-overlay").classList.add("hidden");
+    });
+
+    socket.on("disconnect", () => {
+      $("conn").classList.remove("connected");
+      $("conn-label").textContent = "Disconnected";
+      $("disconnected-overlay").classList.remove("hidden");
+    });
+  } else {
+    let saved = null;
+    try {
+      saved = JSON.parse(localStorage.getItem(LOCAL_KEY));
+    } catch {
+      saved = null;
+    }
+    state = BusState.normalize(saved);
+    lastVersion = state.version;
     $("conn").classList.add("connected");
-    $("conn-label").textContent = "Live";
-    $("disconnected-overlay").classList.add("hidden");
-  });
-
-  socket.on("disconnect", () => {
-    $("conn").classList.remove("connected");
-    $("conn-label").textContent = "Disconnected";
-    $("disconnected-overlay").classList.remove("hidden");
-  });
+    $("conn-label").textContent = "This device";
+    render();
+  }
 
   // ---------- Drag and drop ----------
 
@@ -194,7 +229,7 @@
         dragging = false;
         const busId = evt.item.dataset.id;
         const to = zoneTarget(evt.to, evt.newIndex);
-        socket.emit("bus:move", { busId, to });
+        send("bus:move", { busId, to });
         // Apply the move optimistically so the board doesn't snap back while
         // waiting for the server broadcast (which remains authoritative).
         applyLocalMove(busId, to);
@@ -230,7 +265,7 @@
       edit.addEventListener("click", () => {
         const number = prompt("Bus number:", bus.number);
         if (number === null) return;
-        socket.emit("roster:update", { id: bus.id, number });
+        send("roster:update", { id: bus.id, number });
       });
       li.appendChild(edit);
 
@@ -239,7 +274,7 @@
       del.textContent = "Delete";
       del.addEventListener("click", () => {
         if (confirm(`Remove bus ${bus.number} from the roster?`)) {
-          socket.emit("roster:remove", { id: bus.id });
+          send("roster:remove", { id: bus.id });
         }
       });
       li.appendChild(del);
@@ -261,7 +296,7 @@
       warning.classList.add("hidden");
     }
 
-    socket.emit("roster:add", { number, isSubstitute });
+    send("roster:add", { number, isSubstitute });
     $("add-number").value = "";
     $("add-number").focus();
   }
@@ -285,7 +320,7 @@
 
   function resetDay() {
     if (confirm("Start a new day? All buses return to Not Arrived and substitutes are removed.")) {
-      socket.emit("day:reset", {});
+      send("day:reset", {});
       staleDismissed = false;
     }
   }

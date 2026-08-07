@@ -84,8 +84,11 @@
     </div>
   </div>
 
+  <!-- socket.io only exists when served by the Node server; without it the
+       app falls back to saving in this browser (localStorage). -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="vendor/Sortable.min.js"></script>
+  <script src="js/state.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
