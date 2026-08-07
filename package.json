@@ -1,0 +1,16 @@
+{
+  "name": "school-bus-departure",
+  "version": "1.0.0",
+  "description": "School bus arrival and departure board with live multi-device sync",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "express": "^5.2.1",
+    "socket.io": "^4.8.3",
+    "sortablejs": "^1.15.7"
+  }
+}

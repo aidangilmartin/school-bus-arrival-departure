@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bus Dismissal Board</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="title-group">
+      <h1>🚌 Bus Dismissal</h1>
+      <span id="board-date" class="board-date"></span>
+      <span class="conn" id="conn"><span class="conn-dot"></span><span id="conn-label">Connecting…</span></span>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-roster" class="btn">Manage Roster</button>
+      <button id="btn-newday" class="btn btn-warn">New Day</button>
+    </div>
+  </header>
+
+  <div id="stale-banner" class="stale-banner hidden">
+    This board is from a previous day.
+    <button id="btn-stale-reset" class="btn btn-small">Start New Day</button>
+    <button id="btn-stale-dismiss" class="btn btn-small btn-ghost">Keep Viewing</button>
+  </div>
+
+  <main class="board">
+    <section class="column col-pool">
+      <h2>Not Arrived <span class="count" id="count-pool"></span></h2>
+      <div class="bus-list" id="pool" data-zone="unassigned"></div>
+    </section>
+
+    <section class="column col-lane">
+      <h2>Lane 1 <span class="count" id="count-lane-0"></span></h2>
+      <div class="lane-hint">front of line ↓</div>
+      <div class="bus-list" id="lane-0" data-zone="lane" data-lane="0"></div>
+    </section>
+    <section class="column col-lane">
+      <h2>Lane 2 <span class="count" id="count-lane-1"></span></h2>
+      <div class="lane-hint">front of line ↓</div>
+      <div class="bus-list" id="lane-1" data-zone="lane" data-lane="1"></div>
+    </section>
+    <section class="column col-lane">
+      <h2>Lane 3 <span class="count" id="count-lane-2"></span></h2>
+      <div class="lane-hint">front of line ↓</div>
+      <div class="bus-list" id="lane-2" data-zone="lane" data-lane="2"></div>
+    </section>
+    <section class="column col-lane">
+      <h2>Lane 4 <span class="count" id="count-lane-3"></span></h2>
+      <div class="lane-hint">front of line ↓</div>
+      <div class="bus-list" id="lane-3" data-zone="lane" data-lane="3"></div>
+    </section>
+
+    <section class="column col-departed">
+      <h2>Departed <span class="count" id="count-departed"></span></h2>
+      <div class="bus-list" id="departed" data-zone="departed"></div>
+    </section>
+  </main>
+
+  <!-- Roster management modal -->
+  <div id="roster-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Bus Roster</h2>
+        <button id="btn-roster-close" class="btn btn-ghost">✕ Close</button>
+      </div>
+      <form id="roster-add-form" class="roster-add">
+        <input type="text" id="add-number" placeholder="Bus #" maxlength="10" required>
+        <button type="submit" class="btn btn-primary">Add Bus</button>
+        <button type="button" id="btn-add-sub" class="btn btn-sub">Add as Substitute (today only)</button>
+      </form>
+      <p id="roster-warning" class="roster-warning hidden"></p>
+      <ul id="roster-list" class="roster-list"></ul>
+    </div>
+  </div>
+
+  <!-- Disconnected overlay -->
+  <div id="disconnected-overlay" class="disconnected-overlay hidden">
+    <div class="disconnected-card">
+      <div class="spinner"></div>
+      <h2>Connection lost</h2>
+      <p>Trying to reconnect… The board may be out of date.</p>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="vendor/Sortable.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
