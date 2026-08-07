@@ -2,24 +2,41 @@
 
 A live board for managing school bus arrival and departure across 4 lanes at dismissal.
 
-## Run it
+## Hosted (anyone, anywhere)
 
-**Easiest — no server:** double-click `public/index.html`. The board runs
-entirely in your browser and saves automatically on this device
-(the header shows "This device").
+Live at **https://lonestar-bus-board.netlify.app**. Everyone who opens it
+shares one board that stays in sync (updates appear within ~2 seconds).
+The board is stored server-side by a Netlify Function using Netlify Blobs.
 
-**Multi-device live sync:** run
+Deploy updates with:
+
+```
+netlify deploy --prod
+```
+
+## Run it locally
+
+**With the shared server (Netlify Function + Blobs):**
 
 ```
 npm install
+netlify dev
+```
+
+then open the printed URL (http://localhost:8888). This mirrors production.
+
+**With the standalone Node server (websocket sync on your LAN):**
+
+```
 npm start
 ```
 
-and open http://localhost:3000. Every device that opens the page sees the
-same board and updates live — open it in two windows side by side to see
-the sync. Other devices on the same Wi-Fi can reach it at
-`http://<this-computer's-IP>:3000` (allow Node through the Windows
-firewall when prompted). The header shows "Live" in this mode.
+and open http://localhost:3000. Other devices on the same Wi-Fi can reach
+it at `http://<this-computer's-IP>:3000`.
+
+**No server at all:** double-click `public/index.html`. The board runs
+entirely in your browser and saves on that device only (header shows
+"This device").
 
 ## How to use
 
@@ -35,7 +52,16 @@ firewall when prompted). The header shows "Live" in this mode.
 
 ## Where data lives
 
-- No-server mode: saved in the browser's localStorage on that device.
-- Server mode: saved to `data/state.json` and shared by all devices.
+- Hosted / `netlify dev`: Netlify Blobs, shared by everyone.
+- `npm start`: `data/state.json`, shared by devices hitting that server.
+- No-server (file://): the browser's localStorage on that one device.
 
-The two modes don't share data with each other.
+These backends don't share data with each other.
+
+## How the client picks a mode
+
+`public/js/app.js` auto-detects at load: if socket.io is present it's the
+`npm start` server (websockets); else if served over http(s) it uses the
+REST API at `/api/board` with polling (hosted); else (file://) it saves to
+localStorage. The board logic in `public/js/state.js` is shared by the
+browser, the Node server, and the Netlify Function.

@@ -1,2 +1,8 @@
 node_modules/
 data/
+
+# Local Netlify folder
+.netlify
+
+# Netlify tooling artifact
+deno.lock

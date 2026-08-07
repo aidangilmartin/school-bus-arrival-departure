@@ -2,29 +2,72 @@
 (function () {
   "use strict";
 
-  // Two modes: served by the Node server (socket.io script loads → live
-  // multi-device sync) or opened straight from index.html (no server →
-  // state lives in this browser's localStorage).
-  const hasServer = typeof io !== "undefined";
+  // Three modes, auto-detected:
+  //  - "socket": served by the local Node server (socket.io present) → live
+  //     websocket sync. Used by `npm start`.
+  //  - "remote": served over http(s) without socket.io (e.g. hosted on
+  //     Netlify) → shared state via a REST function, polled for live updates.
+  //  - "local": opened straight from index.html (file://) → state saved in
+  //     this browser's localStorage only.
+  const API = "/api/board";
   const LOCAL_KEY = "busBoardState";
-  const socket = hasServer ? io() : null;
+  const isHttp = location.protocol === "http:" || location.protocol === "https:";
+  const mode = typeof io !== "undefined" ? "socket" : isHttp ? "remote" : "local";
+  const socket = mode === "socket" ? io() : null;
 
   let state = null;
   let lastVersion = -1;
 
   function send(event, payload) {
-    if (hasServer) {
-      send(event, payload);
-      return;
-    }
-    const mutate = BusState.actions[event];
-    if (mutate && mutate(state, payload || {})) {
-      try {
-        localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
-      } catch (err) {
-        console.error("Failed to save board:", err);
+    if (mode === "socket") {
+      socket.emit(event, payload);
+    } else if (mode === "remote") {
+      remoteSend(event, payload);
+    } else {
+      // Local: apply the mutation in-browser and persist to localStorage.
+      const mutate = BusState.actions[event];
+      if (mutate && mutate(state, payload || {})) {
+        try {
+          localStorage.setItem(LOCAL_KEY, JSON.stringify(state));
+        } catch (err) {
+          console.error("Failed to save board:", err);
+        }
+        render();
       }
-      render();
+    }
+  }
+
+  // ---------- Remote (REST) mode helpers ----------
+
+  function setConnected(ok) {
+    $("conn").classList.toggle("connected", ok);
+    $("conn-label").textContent = ok ? "Live" : "Reconnecting…";
+    $("disconnected-overlay").classList.toggle("hidden", ok);
+  }
+
+  async function remoteGet() {
+    try {
+      const res = await fetch(API, { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      applyState(await res.json());
+      setConnected(true);
+    } catch (err) {
+      setConnected(false);
+    }
+  }
+
+  async function remoteSend(event, payload) {
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ event, payload }),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      applyState(await res.json());
+      setConnected(true);
+    } catch (err) {
+      setConnected(false);
     }
   }
 
@@ -155,22 +198,24 @@
     }
   }
 
-  // ---------- Socket / local init ----------
+  // ---------- Init per mode ----------
 
-  if (hasServer) {
+  if (mode === "socket") {
     socket.on("state", applyState);
-
     socket.on("connect", () => {
       $("conn").classList.add("connected");
       $("conn-label").textContent = "Live";
       $("disconnected-overlay").classList.add("hidden");
     });
-
     socket.on("disconnect", () => {
       $("conn").classList.remove("connected");
       $("conn-label").textContent = "Disconnected";
       $("disconnected-overlay").classList.remove("hidden");
     });
+  } else if (mode === "remote") {
+    // Fetch shared state now, then poll for other devices' changes.
+    remoteGet();
+    setInterval(remoteGet, 2000);
   } else {
     let saved = null;
     try {
