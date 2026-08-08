@@ -1,9 +1,10 @@
 // Shared bus-board state for the hosted (Netlify) site.
-// GET  /api/board        -> current board state (JSON).
-// POST /api/board {event, payload} -> apply one action, return the new state.
+// GET  /api/board        -> current board state (JSON). Public (student view).
+// POST /api/board {event, payload} -> apply one action. Admins only: requires
+//   a whitelisted Google account (Authorization: Bearer <id_token>).
 // State lives in Netlify Blobs so every device shares one board.
-import { getStore } from "@netlify/blobs";
 import BusState from "../../public/js/state.js";
+import { boardStore, requireAdmin } from "../lib/auth.mjs";
 
 const KEY = "state";
 const HEADERS = { "content-type": "application/json", "cache-control": "no-store" };
@@ -17,9 +18,7 @@ async function loadState(store) {
 }
 
 export default async (req) => {
-  // Strong consistency so each read sees the previous write — essential for
-  // the read-modify-write below (otherwise concurrent adds clobber each other).
-  const store = getStore({ name: "bus-board", consistency: "strong" });
+  const store = boardStore();
 
   if (req.method === "GET") {
     const { state } = await loadState(store);
@@ -27,6 +26,12 @@ export default async (req) => {
   }
 
   if (req.method === "POST") {
+    // Only whitelisted Google accounts may change the board.
+    const admin = await requireAdmin(req, store);
+    if (!admin) {
+      return Response.json({ error: "not authorized" }, { status: 403, headers: HEADERS });
+    }
+
     let body;
     try {
       body = await req.json();

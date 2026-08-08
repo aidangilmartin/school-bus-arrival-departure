@@ -48,7 +48,30 @@ body {
 }
 .conn.connected .conn-dot { background: #2ecc71; }
 
-.topbar-actions { display: flex; gap: 10px; }
+.topbar-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- Auth / account ---------- */
+.auth-area { display: flex; align-items: center; gap: 10px; }
+#google-signin { display: flex; }
+.account-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #dbe6f2;
+  font-size: 0.9rem;
+  max-width: 220px;
+}
+.account-info span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.account-pic { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; }
+.modal-note { color: var(--muted); font-size: 0.9rem; }
+.access-add { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.access-add input {
+  font-size: 1rem;
+  padding: 10px;
+  min-height: 44px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
 
 /* ---------- Buttons ---------- */
 .btn {

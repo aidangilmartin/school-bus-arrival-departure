@@ -14,8 +14,20 @@
       <span class="conn" id="conn"><span class="conn-dot"></span><span id="conn-label">Connecting…</span></span>
     </div>
     <div class="topbar-actions">
-      <button id="btn-roster" class="btn">Manage Roster</button>
-      <button id="btn-newday" class="btn btn-warn">New Day</button>
+      <!-- Admin-only controls -->
+      <button id="btn-roster" class="btn admin-only hidden">Manage Roster</button>
+      <button id="btn-newday" class="btn btn-warn admin-only hidden">New Day</button>
+      <button id="btn-access" class="btn admin-only hidden">Manage Access</button>
+
+      <!-- Auth area (remote/hosted mode only) -->
+      <div id="auth-area" class="auth-area hidden">
+        <div id="google-signin"></div>
+        <span id="account-info" class="account-info hidden">
+          <img id="account-pic" class="account-pic" alt="" referrerpolicy="no-referrer">
+          <span id="account-name"></span>
+        </span>
+        <button id="btn-signout" class="btn btn-ghost hidden">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -75,6 +87,23 @@
     </div>
   </div>
 
+  <!-- Access management modal (admin only) -->
+  <div id="access-modal" class="modal-backdrop hidden">
+    <div class="modal">
+      <div class="modal-head">
+        <h2>Manage Access</h2>
+        <button id="btn-access-close" class="btn btn-ghost">✕ Close</button>
+      </div>
+      <p class="modal-note">Whitelisted Google accounts can manage the board. Everyone else sees the read-only student view.</p>
+      <form id="access-add-form" class="access-add">
+        <input type="email" id="access-email" placeholder="teacher@school.org" autocomplete="off">
+        <button type="submit" class="btn btn-primary">Add teacher</button>
+      </form>
+      <p id="access-warning" class="roster-warning hidden"></p>
+      <ul id="access-list" class="roster-list"></ul>
+    </div>
+  </div>
+
   <!-- Disconnected overlay -->
   <div id="disconnected-overlay" class="disconnected-overlay hidden">
     <div class="disconnected-card">
@@ -84,10 +113,13 @@
     </div>
   </div>
 
+  <!-- Google Identity Services (used for staff sign-in on the hosted site) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- socket.io only exists when served by the Node server; without it the
-       app falls back to saving in this browser (localStorage). -->
+       app falls back to the REST API (hosted) or localStorage (file://). -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="vendor/Sortable.min.js"></script>
+  <script src="js/config.js"></script>
   <script src="js/state.js"></script>
   <script src="js/app.js"></script>
 </body>

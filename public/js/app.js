@@ -18,10 +18,16 @@
   let state = null;
   let lastVersion = -1;
 
+  // Roles. Only the hosted "remote" mode gates management behind Google login;
+  // the local Node server and file:// modes are trusted, so they're admin.
+  let isAdmin = mode !== "remote";
+  let idToken = null; // Google ID token for authenticated requests
+
   function send(event, payload) {
     if (mode === "socket") {
       socket.emit(event, payload);
     } else if (mode === "remote") {
+      if (!isAdmin) return; // students can't mutate (server also enforces)
       remoteSend(event, payload);
     } else {
       // Local: apply the mutation in-browser and persist to localStorage.
@@ -58,11 +64,19 @@
 
   async function remoteSend(event, payload) {
     try {
+      const headers = { "content-type": "application/json" };
+      if (idToken) headers.authorization = "Bearer " + idToken;
       const res = await fetch(API, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers,
         body: JSON.stringify({ event, payload }),
       });
+      if (res.status === 403) {
+        // Token expired or no longer whitelisted → drop back to student view.
+        handleAuthLost();
+        remoteGet();
+        return;
+      }
       if (!res.ok) throw new Error("HTTP " + res.status);
       applyState(await res.json());
       setConnected(true);
@@ -135,13 +149,14 @@
     row.appendChild(right);
     el.appendChild(row);
 
-    if (zone === "lane") {
+    // Management buttons only for admins; students get a read-only board.
+    if (isAdmin && zone === "lane") {
       const btn = document.createElement("button");
       btn.className = "bus-action depart";
       btn.textContent = "Departed ✓";
       btn.addEventListener("click", () => send("bus:depart", { busId: bus.id }));
       el.appendChild(btn);
-    } else if (zone === "departed") {
+    } else if (isAdmin && zone === "departed") {
       const btn = document.createElement("button");
       btn.className = "bus-action undo";
       btn.textContent = "↩ Undo";
@@ -214,8 +229,10 @@
     });
   } else if (mode === "remote") {
     // Fetch shared state now, then poll for other devices' changes.
+    // Auth setup (initGoogleAuth/applyRole) runs after Sortable is created.
     remoteGet();
     setInterval(remoteGet, 2000);
+    $("auth-area").classList.remove("hidden");
   } else {
     let saved = null;
     try {
@@ -256,10 +273,11 @@
   }
 
   const allContainers = [lists.pool, ...lists.lanes, lists.departed];
-  allContainers.forEach((container) => {
+  const sortables = allContainers.map((container) =>
     new Sortable(container, {
       group: "buses",
       animation: 150,
+      disabled: !isAdmin,       // students can't drag
       forceFallback: true,      // same drag behavior for mouse and touch
       fallbackTolerance: 4,
       delay: 120,               // long-press-ish start so taps/scrolls don't drag
@@ -281,8 +299,105 @@
         pendingState = null;
         render();
       },
+    }),
+  );
+
+  // ---------- Roles / Google auth (remote mode) ----------
+
+  // Reflect the current role in the UI: show/hide admin controls, toggle drag,
+  // swap the sign-in button for the account chip, and re-render the board so
+  // per-bus action buttons appear or disappear.
+  function applyRole() {
+    document.querySelectorAll(".admin-only").forEach((el) => {
+      el.classList.toggle("hidden", !isAdmin);
     });
-  });
+    sortables.forEach((s) => s.option("disabled", !isAdmin));
+    if (state) render();
+  }
+
+  function showAccount(user) {
+    $("google-signin").classList.add("hidden");
+    const info = $("account-info");
+    info.classList.remove("hidden");
+    $("account-name").textContent = user.name || user.email;
+    if (user.picture) $("account-pic").src = user.picture;
+    else $("account-pic").classList.add("hidden");
+    $("btn-signout").classList.remove("hidden");
+  }
+
+  function showSignIn() {
+    $("google-signin").classList.remove("hidden");
+    $("account-info").classList.add("hidden");
+    $("btn-signout").classList.add("hidden");
+  }
+
+  function handleAuthLost() {
+    idToken = null;
+    isAdmin = false;
+    showSignIn();
+    applyRole();
+  }
+
+  async function onGoogleCredential(response) {
+    idToken = response.credential;
+    try {
+      const res = await fetch("/api/auth", {
+        method: "POST",
+        headers: { authorization: "Bearer " + idToken },
+      });
+      const data = await res.json();
+      if (data.signedIn) {
+        showAccount(data);
+        isAdmin = !!data.isAdmin;
+      } else {
+        handleAuthLost();
+        return;
+      }
+    } catch {
+      handleAuthLost();
+      return;
+    }
+    applyRole();
+  }
+
+  function initGoogleAuth() {
+    const clientId = (window.APP_CONFIG || {}).googleClientId;
+    if (!clientId) return; // sign-in not configured → student view only
+    // GIS loads async; wait for it, then render the button.
+    let tries = 0;
+    const timer = setInterval(() => {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        clearInterval(timer);
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: onGoogleCredential,
+          auto_select: false,
+        });
+        window.google.accounts.id.renderButton($("google-signin"), {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          text: "signin_with",
+        });
+      } else if (++tries > 40) {
+        clearInterval(timer); // ~8s; give up quietly, stay on student view
+      }
+    }, 200);
+  }
+
+  function signOut() {
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      window.google.accounts.id.disableAutoSelect();
+    }
+    handleAuthLost();
+  }
+  $("btn-signout").addEventListener("click", signOut);
+
+  // Now that Sortable and the role helpers exist, kick off auth (remote mode).
+  if (mode === "remote") {
+    initGoogleAuth();
+    applyRole();
+  }
 
   // ---------- Roster modal ----------
 
@@ -374,5 +489,90 @@
   $("btn-stale-dismiss").addEventListener("click", () => {
     staleDismissed = true;
     $("stale-banner").classList.add("hidden");
+  });
+
+  // ---------- Manage Access modal (admin whitelist) ----------
+
+  async function adminsApi(method, body) {
+    const headers = {};
+    if (idToken) headers.authorization = "Bearer " + idToken;
+    if (body) headers["content-type"] = "application/json";
+    const res = await fetch("/api/admins", {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (res.status === 403) {
+      handleAuthLost();
+      throw new Error("not authorized");
+    }
+    return res.json();
+  }
+
+  function renderAccessList(data) {
+    const ul = $("access-list");
+    ul.textContent = "";
+    const rows = [
+      ...data.bootstrap.map((email) => ({ email, locked: true })),
+      ...data.admins.map((email) => ({ email, locked: false })),
+    ];
+    rows.forEach(({ email, locked }) => {
+      const li = document.createElement("li");
+      const span = document.createElement("span");
+      span.className = "r-number";
+      span.style.fontSize = "1rem";
+      span.textContent = email;
+      li.appendChild(span);
+
+      if (locked) {
+        const badge = document.createElement("span");
+        badge.className = "sub-badge";
+        badge.textContent = "OWNER";
+        li.appendChild(badge);
+      } else {
+        const del = document.createElement("button");
+        del.className = "btn btn-small btn-danger";
+        del.textContent = "Remove";
+        del.addEventListener("click", async () => {
+          if (!confirm(`Remove ${email} from admins?`)) return;
+          try {
+            renderAccessList(await adminsApi("POST", { action: "remove", email }));
+          } catch {}
+        });
+        li.appendChild(del);
+      }
+      ul.appendChild(li);
+    });
+  }
+
+  async function openAccessModal() {
+    $("access-warning").classList.add("hidden");
+    $("access-modal").classList.remove("hidden");
+    try {
+      renderAccessList(await adminsApi("GET"));
+    } catch {}
+  }
+
+  $("btn-access").addEventListener("click", openAccessModal);
+  $("btn-access-close").addEventListener("click", () => $("access-modal").classList.add("hidden"));
+  $("access-modal").addEventListener("click", (e) => {
+    if (e.target === $("access-modal")) $("access-modal").classList.add("hidden");
+  });
+  $("access-add-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = $("access-email").value.trim().toLowerCase();
+    if (!email) return;
+    const warning = $("access-warning");
+    try {
+      const data = await adminsApi("POST", { action: "add", email });
+      if (data.error) {
+        warning.textContent = data.error;
+        warning.classList.remove("hidden");
+        return;
+      }
+      warning.classList.add("hidden");
+      $("access-email").value = "";
+      renderAccessList(data);
+    } catch {}
   });
 })();
