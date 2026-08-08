@@ -19,8 +19,10 @@
   let lastVersion = -1;
 
   // Roles. Only the hosted "remote" mode gates management behind Google login;
-  // the local Node server and file:// modes are trusted, so they're admin.
+  // the local Node server and file:// modes are trusted, so they're owner/admin.
+  // admin = can manage the board; owner = can also manage the whitelist.
   let isAdmin = mode !== "remote";
+  let isOwner = mode !== "remote";
   let idToken = null; // Google ID token for authenticated requests
 
   function send(event, payload) {
@@ -311,6 +313,9 @@
     document.querySelectorAll(".admin-only").forEach((el) => {
       el.classList.toggle("hidden", !isAdmin);
     });
+    document.querySelectorAll(".owner-only").forEach((el) => {
+      el.classList.toggle("hidden", !isOwner);
+    });
     sortables.forEach((s) => s.option("disabled", !isAdmin));
     if (state) render();
   }
@@ -334,6 +339,7 @@
   function handleAuthLost() {
     idToken = null;
     isAdmin = false;
+    isOwner = false;
     showSignIn();
     applyRole();
   }
@@ -349,6 +355,7 @@
       if (data.signedIn) {
         showAccount(data);
         isAdmin = !!data.isAdmin;
+        isOwner = !!data.isOwner;
       } else {
         handleAuthLost();
         return;

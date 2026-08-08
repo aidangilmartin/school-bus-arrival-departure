@@ -1,21 +1,21 @@
-// Manage the teacher whitelist. Admins only.
+// Manage the teacher whitelist. OWNERS ONLY (bootstrap accounts).
 // GET  /api/admins            -> { admins: [...editable], bootstrap: [...locked], me }
 // POST /api/admins {action:"add"|"remove", email}
-import { boardStore, requireAdmin, listAdmins, setStoredAdmins } from "../lib/auth.mjs";
+import { boardStore, requireOwner, listAdmins, setStoredAdmins } from "../lib/auth.mjs";
 
 const HEADERS = { "content-type": "application/json", "cache-control": "no-store" };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default async (req) => {
   const store = boardStore();
-  const admin = await requireAdmin(req, store);
-  if (!admin) {
+  const owner = await requireOwner(req);
+  if (!owner) {
     return Response.json({ error: "not authorized" }, { status: 403, headers: HEADERS });
   }
 
   if (req.method === "GET") {
     const { stored, bootstrap } = await listAdmins(store);
-    return Response.json({ admins: stored, bootstrap, me: admin.email }, { headers: HEADERS });
+    return Response.json({ admins: stored, bootstrap, me: owner.email}, { headers: HEADERS });
   }
 
   if (req.method === "POST") {
@@ -47,7 +47,7 @@ export default async (req) => {
     }
 
     const saved = await setStoredAdmins(store, next);
-    return Response.json({ admins: saved, bootstrap, me: admin.email }, { headers: HEADERS });
+    return Response.json({ admins: saved, bootstrap, me: owner.email}, { headers: HEADERS });
   }
 
   return Response.json({ error: "method not allowed" }, { status: 405, headers: HEADERS });

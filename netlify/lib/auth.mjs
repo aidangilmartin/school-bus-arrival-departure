@@ -64,6 +64,12 @@ export async function isAdminEmail(email, store) {
   return all.includes(String(email).toLowerCase());
 }
 
+// Owners = bootstrap accounts (env). Only owners may manage the whitelist.
+export function isOwnerEmail(email) {
+  if (!email) return false;
+  return BOOTSTRAP.includes(String(email).toLowerCase());
+}
+
 export async function setStoredAdmins(store, emails) {
   store = store || boardStore();
   const clean = [
@@ -78,4 +84,11 @@ export async function requireAdmin(req, store) {
   const user = await verifyGoogleToken(bearer(req));
   if (!user) return null;
   return (await isAdminEmail(user.email, store)) ? user : null;
+}
+
+// Returns the verified owner user or null. Owners can manage the whitelist.
+export async function requireOwner(req) {
+  const user = await verifyGoogleToken(bearer(req));
+  if (!user) return null;
+  return isOwnerEmail(user.email) ? user : null;
 }
