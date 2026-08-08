@@ -317,13 +317,111 @@ body {
 
 .hidden { display: none !important; }
 
-/* ---------- Narrow screens: stack columns ---------- */
-@media (max-width: 900px) {
-  body { overflow: auto; height: auto; }
-  .board {
-    grid-template-columns: 1fr 1fr;
-    overflow: visible;
+/* ---------- Mobile tab bar (hidden on desktop) ---------- */
+.mobile-tabs { display: none; }
+.mobile-move { display: none; }
+
+/* ---------- Move sheet ---------- */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 30, 42, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 60;
+}
+.sheet {
+  background: #fff;
+  width: 100%;
+  max-width: 480px;
+  border-radius: 16px 16px 0 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sheet-title { font-size: 1.1rem; font-weight: 600; text-align: center; margin-bottom: 4px; }
+.sheet-actions { display: flex; flex-direction: column; gap: 8px; }
+.sheet-actions button {
+  min-height: 48px;
+  font-size: 1.05rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #f6f8fb;
+  color: var(--text);
+  cursor: pointer;
+}
+.sheet-actions button:hover { background: #eef2f7; }
+.sheet-cancel { min-height: 48px; margin-top: 4px; }
+
+/* ---------- Phone / small tablet: one column at a time ---------- */
+@media (max-width: 820px) {
+  body { overflow: hidden; height: 100vh; height: 100dvh; }
+
+  .topbar { padding: 8px 10px; gap: 8px; }
+  .topbar h1 { font-size: 1.05rem; }
+  .board-date { display: none; }
+  .btn { padding: 8px 12px; min-height: 40px; font-size: 0.9rem; }
+
+  /* Tab bar */
+  .mobile-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 6px 8px;
+    overflow-x: auto;
+    background: #e8edf3;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
   }
-  .column { min-height: 160px; }
-  .bus-list { overflow-y: visible; }
+  .mtab {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--muted);
+    border-radius: 999px;
+    padding: 8px 12px;
+    min-height: 40px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+  .mtab.active { background: var(--waiting); color: #fff; border-color: var(--waiting); }
+  .mtab-count {
+    background: rgba(0, 0, 0, 0.12);
+    border-radius: 999px;
+    padding: 0 6px;
+    font-size: 0.75rem;
+    min-width: 18px;
+    text-align: center;
+  }
+  .mtab.active .mtab-count { background: rgba(255, 255, 255, 0.3); }
+
+  /* One column fills the remaining height; only its list scrolls */
+  .board {
+    display: block;
+    padding: 0;
+    overflow: hidden;
+  }
+  .column {
+    display: none;
+    height: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+  }
+  .column.active-col { display: flex; }
+  .column h2 { font-size: 1rem; }
+  .lane-hint { display: none; }
+  .bus-list { overflow-y: auto; }
+
+  .bus-number { font-size: 1.8rem; }
+  .mobile-move { display: block; }
+
+  /* Drag is off on phones — let touches scroll the list instead */
+  .bus { touch-action: pan-y; cursor: default; }
 }
