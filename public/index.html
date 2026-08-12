@@ -37,16 +37,6 @@
     <button id="btn-stale-dismiss" class="btn btn-small btn-ghost">Keep Viewing</button>
   </div>
 
-  <!-- Mobile-only: pick one column to view at a time (no scrolling) -->
-  <nav class="mobile-tabs" id="mobile-tabs" aria-label="Board sections">
-    <button class="mtab active" data-target="pool">Not Arrived <span class="mtab-count" id="mtab-pool"></span></button>
-    <button class="mtab" data-target="lane-0">Lane 1 <span class="mtab-count" id="mtab-lane-0"></span></button>
-    <button class="mtab" data-target="lane-1">Lane 2 <span class="mtab-count" id="mtab-lane-1"></span></button>
-    <button class="mtab" data-target="lane-2">Lane 3 <span class="mtab-count" id="mtab-lane-2"></span></button>
-    <button class="mtab" data-target="lane-3">Lane 4 <span class="mtab-count" id="mtab-lane-3"></span></button>
-    <button class="mtab" data-target="departed">Departed <span class="mtab-count" id="mtab-departed"></span></button>
-  </nav>
-
   <main class="board">
     <section class="column col-pool">
       <h2>Not Arrived <span class="count" id="count-pool"></span></h2>
@@ -111,15 +101,6 @@
       </form>
       <p id="access-warning" class="roster-warning hidden"></p>
       <ul id="access-list" class="roster-list"></ul>
-    </div>
-  </div>
-
-  <!-- Move sheet (mobile: move a bus between columns) -->
-  <div id="move-sheet" class="sheet-backdrop hidden">
-    <div class="sheet">
-      <div class="sheet-title">Move bus <span id="move-bus-num"></span></div>
-      <div class="sheet-actions" id="move-dests"></div>
-      <button class="btn btn-ghost sheet-cancel" id="move-cancel">Cancel</button>
     </div>
   </div>
 

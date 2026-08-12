@@ -25,13 +25,6 @@
   let isOwner = mode !== "remote";
   let idToken = null; // Google ID token for authenticated requests
 
-  // On phones we disable drag (so long columns can finger-scroll) and move
-  // buses with the Move button instead. Drag stays on desktop/tablet.
-  const mqMobile = window.matchMedia("(max-width: 820px)");
-  function dragEnabled() {
-    return isAdmin && !mqMobile.matches;
-  }
-
   function send(event, payload) {
     if (mode === "socket") {
       socket.emit(event, payload);
@@ -107,71 +100,6 @@
     departed: $("departed"),
   };
 
-  // ---------- Mobile: single-column tabs ----------
-
-  function setActiveColumn(listId) {
-    const col = $(listId) ? $(listId).closest(".column") : null;
-    if (!col) return;
-    document.querySelectorAll(".column").forEach((c) => c.classList.remove("active-col"));
-    col.classList.add("active-col");
-    document.querySelectorAll(".mtab").forEach((t) => {
-      t.classList.toggle("active", t.dataset.target === listId);
-    });
-  }
-  document.querySelectorAll(".mtab").forEach((tab) => {
-    tab.addEventListener("click", () => setActiveColumn(tab.dataset.target));
-  });
-  setActiveColumn("pool"); // default view
-
-  // ---------- Mobile: move-a-bus sheet ----------
-
-  const ZONE_LABELS = ["Not Arrived", "Lane 1", "Lane 2", "Lane 3", "Lane 4", "Departed"];
-  const ZONE_IDS = ["pool", "lane-0", "lane-1", "lane-2", "lane-3", "departed"];
-
-  function locationOf(busId) {
-    for (let i = 0; i < state.lanes.length; i++) {
-      if (state.lanes[i].includes(busId)) return "lane-" + i;
-    }
-    if (state.departed.includes(busId)) return "departed";
-    return "pool";
-  }
-
-  function closeMoveSheet() {
-    $("move-sheet").classList.add("hidden");
-  }
-
-  function moveBusTo(busId, destId) {
-    if (destId === "pool") {
-      send("bus:move", { busId, to: { type: "unassigned" } });
-    } else if (destId === "departed") {
-      send("bus:depart", { busId });
-    } else {
-      const lane = Number(destId.split("-")[1]);
-      send("bus:move", { busId, to: { type: "lane", lane, index: state.lanes[lane].length } });
-    }
-    closeMoveSheet();
-  }
-
-  function openMoveSheet(bus) {
-    $("move-bus-num").textContent = bus.number;
-    const here = locationOf(bus.id);
-    const holder = $("move-dests");
-    holder.textContent = "";
-    ZONE_IDS.forEach((destId, i) => {
-      if (destId === here) return; // skip where it already is
-      const b = document.createElement("button");
-      b.textContent = ZONE_LABELS[i];
-      b.addEventListener("click", () => moveBusTo(bus.id, destId));
-      holder.appendChild(b);
-    });
-    $("move-sheet").classList.remove("hidden");
-  }
-
-  $("move-cancel").addEventListener("click", closeMoveSheet);
-  $("move-sheet").addEventListener("click", (e) => {
-    if (e.target === $("move-sheet")) closeMoveSheet();
-  });
-
   function todayStr() {
     const d = new Date();
     return (
@@ -237,17 +165,6 @@
       btn.addEventListener("click", () => send("bus:undepart", { busId: bus.id }));
       el.appendChild(btn);
     }
-    // Mobile-only "Move" button (CSS hides it on desktop, where drag is used).
-    if (isAdmin && zone !== "departed") {
-      const mv = document.createElement("button");
-      mv.className = "bus-action move mobile-move";
-      mv.textContent = "Move ▾";
-      mv.addEventListener("click", (e) => {
-        e.stopPropagation();
-        openMoveSheet(bus);
-      });
-      el.appendChild(mv);
-    }
     return el;
   }
 
@@ -274,13 +191,6 @@
       $("count-lane-" + i).textContent = lane.length || "";
     });
     $("count-departed").textContent = state.departed.length || "";
-
-    // Mobile tab-bar counts
-    $("mtab-pool").textContent = poolBuses.length;
-    state.lanes.forEach((lane, i) => {
-      $("mtab-lane-" + i).textContent = lane.length;
-    });
-    $("mtab-departed").textContent = state.departed.length;
 
     $("board-date").textContent = new Date(state.date + "T12:00:00").toLocaleDateString(undefined, {
       weekday: "long",
@@ -369,7 +279,7 @@
     new Sortable(container, {
       group: "buses",
       animation: 150,
-      disabled: !dragEnabled(), // students can't drag; nobody drags on mobile
+      disabled: !isAdmin,       // students can't drag
       forceFallback: true,      // same drag behavior for mouse and touch
       fallbackTolerance: 4,
       delay: 120,               // long-press-ish start so taps/scrolls don't drag
@@ -399,11 +309,6 @@
   // Reflect the current role in the UI: show/hide admin controls, toggle drag,
   // swap the sign-in button for the account chip, and re-render the board so
   // per-bus action buttons appear or disappear.
-  function updateDrag() {
-    sortables.forEach((s) => s.option("disabled", !dragEnabled()));
-  }
-  mqMobile.addEventListener("change", updateDrag);
-
   function applyRole() {
     document.querySelectorAll(".admin-only").forEach((el) => {
       el.classList.toggle("hidden", !isAdmin);
@@ -411,7 +316,7 @@
     document.querySelectorAll(".owner-only").forEach((el) => {
       el.classList.toggle("hidden", !isOwner);
     });
-    updateDrag();
+    sortables.forEach((s) => s.option("disabled", !isAdmin));
     if (state) render();
   }
 
