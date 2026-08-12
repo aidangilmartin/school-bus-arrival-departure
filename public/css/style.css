@@ -46,21 +46,15 @@ body {
 .board-date { color: #cdd3da; font-size: 1rem; }
 
 /* Brand mark */
-.brand { display: flex; align-items: center; gap: 10px; }
-.brand-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 42px;
-  height: 42px;
-  background: var(--gold);
-  color: #14171b;
-  font-family: Georgia, "Times New Roman", serif;
-  font-weight: 800;
-  font-size: 1.15rem;
-  letter-spacing: 0.02em;
-  border-radius: 9px;
-  border: 2px solid #fff;
+.brand { display: flex; align-items: center; gap: 11px; }
+.brand-logo {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
+  padding: 3px;
+  border: 2px solid var(--gold);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
   flex-shrink: 0;
 }
