@@ -1,17 +1,20 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #f1f4f8;
+  --bg: #e8eaed;
   --col-bg: #ffffff;
-  --border: #d6dde6;
-  --text: #1c2733;
-  --muted: #6b7a8c;
-  --waiting: #2f80ed;
-  --departed: #27ae60;
-  --pool: #95a5b8;
-  --warn: #e67e22;
-  --danger: #e74c3c;
-  --sub: #9b59b6;
+  --border: #d3d8de;
+  --text: #16191d;
+  --muted: #6c757d;
+  --gold: #c4a34d;         /* Royse City vegas gold */
+  --gold-dark: #a2842f;
+  --waiting: #b1913a;      /* in-lane / waiting accent (gold) */
+  --departed: #2f9e5b;
+  --pool: #99a0a8;         /* silver */
+  --warn: #bd7f2b;
+  --danger: #d9463b;
+  --sub: #333941;          /* charcoal */
+  --header-bg: #101317;    /* near-black */
 }
 
 html, body { height: 100%; }
@@ -33,13 +36,42 @@ body {
   justify-content: space-between;
   gap: 12px;
   padding: 10px 16px;
-  background: #223449;
+  background: var(--header-bg);
   color: #fff;
+  border-bottom: 3px solid var(--gold);
   flex-wrap: wrap;
 }
-.title-group { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
-.topbar h1 { font-size: 1.25rem; }
-.board-date { color: #b8c6d8; font-size: 1rem; }
+.title-group { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.topbar h1 { font-size: 1.2rem; }
+.board-date { color: #cdd3da; font-size: 1rem; }
+
+/* Brand mark */
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background: var(--gold);
+  color: #14171b;
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+  border-radius: 9px;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.12; }
+.brand-sub {
+  font-size: 0.68rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
 
 .conn { display: inline-flex; align-items: center; gap: 6px; font-size: 0.85rem; color: #b8c6d8; }
 .conn-dot {
@@ -80,14 +112,14 @@ body {
   min-height: 44px;
   border: none;
   border-radius: 8px;
-  background: #3d5a7d;
+  background: #39414b;
   color: #fff;
   cursor: pointer;
   touch-action: manipulation;
 }
-.btn:hover { filter: brightness(1.1); }
+.btn:hover { filter: brightness(1.12); }
 .btn-warn { background: var(--warn); }
-.btn-primary { background: var(--waiting); }
+.btn-primary { background: var(--gold); color: #14171b; font-weight: 600; }
 .btn-sub { background: var(--sub); }
 .btn-ghost { background: transparent; border: 1px solid var(--border); color: inherit; }
 .btn-small { min-height: 36px; padding: 6px 12px; font-size: 0.9rem; }

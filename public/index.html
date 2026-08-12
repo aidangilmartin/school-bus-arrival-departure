@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bus Dismissal Board</title>
+  <title>Royse City Bus Dismissal</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23101317'/%3E%3Ctext x='32' y='45' font-family='Georgia,serif' font-size='32' font-weight='700' text-anchor='middle' fill='%23c4a34d'%3ERC%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <header class="topbar">
     <div class="title-group">
-      <h1>🚌 Bus Dismissal</h1>
+      <div class="brand">
+        <span class="brand-badge">RC</span>
+        <div class="brand-text">
+          <h1>Bus Dismissal</h1>
+          <span class="brand-sub">Royse City ISD</span>
+        </div>
+      </div>
       <span id="board-date" class="board-date"></span>
       <span class="conn" id="conn"><span class="conn-dot"></span><span id="conn-label">Connecting…</span></span>
     </div>
