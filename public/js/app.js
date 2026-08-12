@@ -11,6 +11,7 @@
   //     this browser's localStorage only.
   const API = "/api/board";
   const LOCAL_KEY = "busBoardState";
+  const TOKEN_KEY = "busBoardToken"; // persists the Google sign-in across reloads
   const isHttp = location.protocol === "http:" || location.protocol === "https:";
   const mode = typeof io !== "undefined" ? "socket" : isHttp ? "remote" : "local";
   const socket = mode === "socket" ? io() : null;
@@ -340,31 +341,43 @@
     idToken = null;
     isAdmin = false;
     isOwner = false;
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {}
     showSignIn();
     applyRole();
   }
 
-  async function onGoogleCredential(response) {
-    idToken = response.credential;
+  // Verify a Google ID token with the server and apply the resulting role.
+  // Used both for a fresh sign-in and for restoring a saved token on reload.
+  async function applyToken(token) {
+    idToken = token;
+    let data;
     try {
       const res = await fetch("/api/auth", {
         method: "POST",
-        headers: { authorization: "Bearer " + idToken },
+        headers: { authorization: "Bearer " + token },
       });
-      const data = await res.json();
-      if (data.signedIn) {
-        showAccount(data);
-        isAdmin = !!data.isAdmin;
-        isOwner = !!data.isOwner;
-      } else {
-        handleAuthLost();
-        return;
-      }
+      data = await res.json();
     } catch {
-      handleAuthLost();
+      // Network hiccup — keep whatever session we had rather than signing out.
       return;
     }
+    if (!data.signedIn) {
+      handleAuthLost(); // token invalid or expired → clear it
+      return;
+    }
+    showAccount(data);
+    isAdmin = !!data.isAdmin;
+    isOwner = !!data.isOwner;
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+    } catch {}
     applyRole();
+  }
+
+  function onGoogleCredential(response) {
+    applyToken(response.credential);
   }
 
   function initGoogleAuth() {
@@ -405,6 +418,12 @@
   applyRole();
   if (mode === "remote") {
     initGoogleAuth();
+    // Restore a previous sign-in so a page reload doesn't drop the session.
+    let savedToken = null;
+    try {
+      savedToken = localStorage.getItem(TOKEN_KEY);
+    } catch {}
+    if (savedToken) applyToken(savedToken);
   }
 
   // ---------- Roster modal ----------
